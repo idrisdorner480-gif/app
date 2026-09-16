@@ -4,6 +4,7 @@ from typing import List
 
 class StoreOffer(BaseModel):
     store: str
+    country_code: str
     price: float
     unit_price: float
     distance_km: float

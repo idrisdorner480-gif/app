@@ -2,6 +2,7 @@ import { apiGet } from "@/lib/api";
 
 export interface StoreOffer {
   store: string;
+  country_code: string;
   price: number;
   unit_price: number;
   distance_km: number;

@@ -9,6 +9,7 @@ import {
   Globe2,
   Heart,
   LayoutGrid,
+  Languages,
   List,
   MapPin,
   Search,
@@ -24,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { fetchCities, fetchCountries, type Country, type SelectedLocation } from "@/lib/locations";
+import { LANGUAGES, LOCATION_COPY, type LanguageCode } from "@/lib/languages";
 import { fetchProducts, type Product, type StoreOffer } from "@/lib/products";
 
 type SortOption = "price" | "unit" | "distance" | "discount";
@@ -37,6 +39,13 @@ const STORE_STYLES: Record<string, string> = {
   "ALDI Süd": "bg-[#00205b] text-[#00a3e0]",
   Penny: "bg-[#cd1318] text-white",
   Kaufland: "bg-[#e2001a] text-white",
+  SPAR: "bg-[#15803d] text-white",
+  BILLA: "bg-[#facc15] text-red-700",
+  MPREIS: "bg-[#e11d48] text-white",
+  "BILLA PLUS": "bg-[#facc15] text-red-700",
+  HOFER: "bg-[#2563eb] text-white",
+  INTERSPAR: "bg-[#15803d] text-white",
+  EUROSPAR: "bg-[#166534] text-white",
 };
 
 const formatEuro = (value: number) =>
@@ -180,7 +189,9 @@ function ComparisonTable({ products, favoriteIds, onToggleFavorite }: { products
   );
 }
 
-function LocationGate({ onComplete }: { onComplete: (location: SelectedLocation) => void }) {
+function LocationGate({ languageCode, onLanguageChange, onComplete }: { languageCode: LanguageCode; onLanguageChange: (language: LanguageCode) => void; onComplete: (location: SelectedLocation) => void }) {
+  const [stage, setStage] = useState<"language" | "country" | "city">("language");
+  const [languageSearch, setLanguageSearch] = useState("");
   const [countrySearch, setCountrySearch] = useState("");
   const [citySearch, setCitySearch] = useState("");
   const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
@@ -191,6 +202,14 @@ function LocationGate({ onComplete }: { onComplete: (location: SelectedLocation)
     enabled: Boolean(selectedCountry),
     retry: 1,
   });
+  const copy = LOCATION_COPY[languageCode];
+
+  const languages = useMemo(() => {
+    const needle = languageSearch.trim().toLocaleLowerCase();
+    return LANGUAGES.filter((language) =>
+      !needle || `${language.native_name} ${language.english_name}`.toLocaleLowerCase().includes(needle),
+    );
+  }, [languageSearch]);
 
   const countries = useMemo(() => {
     const needle = countrySearch.trim().toLocaleLowerCase();
@@ -217,44 +236,57 @@ function LocationGate({ onComplete }: { onComplete: (location: SelectedLocation)
         </div>
 
         <div className="mx-auto w-full max-w-3xl flex-1">
-          {!selectedCountry ? (
+          {stage === "language" ? (
             <>
               <div className="mb-7">
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-700"><Globe2 className="h-3.5 w-3.5" /> Schritt 1 von 2</div>
-                <h1 className="text-3xl font-black tracking-[-0.035em] text-slate-950 sm:text-5xl" data-testid="country-selection-title">In welchem Land lebst du?</h1>
-                <p className="mt-3 text-base text-slate-500">Damit zeigen wir dir nur Supermärkte, die in deiner Region verfügbar sind.</p>
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-700"><Languages className="h-3.5 w-3.5" /> {copy.languageStep}</div>
+                <h1 className="text-3xl font-black tracking-[-0.035em] text-slate-950 sm:text-5xl" data-testid="language-selection-title">{copy.languageTitle}</h1>
+                <p className="mt-3 text-base text-slate-500">{copy.languageSubtitle}</p>
+              </div>
+              <div className="sticky top-4 z-10 mb-4 flex items-center rounded-2xl border border-slate-200 bg-white/95 px-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-100"><Search className="h-4 w-4 shrink-0 text-emerald-600" /><Input value={languageSearch} onChange={(event) => setLanguageSearch(event.target.value)} placeholder={copy.searchLanguage} className="h-14 border-0 bg-transparent shadow-none focus-visible:ring-0" autoFocus data-testid="language-search-input" /></div>
+              <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_14px_45px_rgba(15,23,42,0.07)]" data-testid="language-list"><div className="max-h-[52vh] divide-y divide-slate-100 overflow-y-auto">{languages.map((language) => (
+                <button type="button" key={language.code} onClick={() => { onLanguageChange(language.code); setStage("country"); }} className="flex w-full items-center gap-4 px-5 py-3.5 text-left transition duration-150 hover:bg-emerald-50 focus:bg-emerald-50" data-testid={`language-option-${language.code}`}><span className="flex h-9 w-11 items-center justify-center rounded-lg bg-slate-900 text-xs font-black text-white">{language.symbol}</span><span className="min-w-0 flex-1 font-bold text-slate-800">{language.native_name} <span className="font-medium text-slate-400">({language.english_name})</span></span><ChevronRight className="h-4 w-4 text-slate-300" /></button>
+              ))}{languages.length === 0 ? <div className="p-8 text-center text-sm text-slate-500">{copy.noResult}</div> : null}</div></div>
+            </>
+          ) : stage === "country" ? (
+            <>
+              <button type="button" onClick={() => setStage("language")} className="mb-6 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-500 transition hover:bg-white hover:text-emerald-700" data-testid="language-back-button"><ArrowLeft className="h-4 w-4" /> {copy.changeLanguage}</button>
+              <div className="mb-7">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-700"><Globe2 className="h-3.5 w-3.5" /> {copy.countryStep}</div>
+                <h1 className="text-3xl font-black tracking-[-0.035em] text-slate-950 sm:text-5xl" data-testid="country-selection-title">{copy.countryTitle}</h1>
+                <p className="mt-3 text-base text-slate-500">{copy.countrySubtitle}</p>
               </div>
               <div className="sticky top-4 z-10 mb-4 flex items-center rounded-2xl border border-slate-200 bg-white/95 px-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-100">
                 <Search className="h-4 w-4 shrink-0 text-emerald-600" />
-                <Input value={countrySearch} onChange={(event) => setCountrySearch(event.target.value)} placeholder="Land nach Namen suchen …" className="h-14 border-0 bg-transparent shadow-none focus-visible:ring-0" autoFocus data-testid="country-search-input" />
+                <Input value={countrySearch} onChange={(event) => setCountrySearch(event.target.value)} placeholder={copy.searchCountry} className="h-14 border-0 bg-transparent shadow-none focus-visible:ring-0" autoFocus data-testid="country-search-input" />
               </div>
               <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_14px_45px_rgba(15,23,42,0.07)]" data-testid="country-list">
-                {countriesQuery.isLoading ? <div className="p-8 text-center text-sm font-semibold text-slate-500">Länder werden geladen …</div> : countriesQuery.isError ? <div className="p-8 text-center"><p className="font-bold text-amber-800">Länderliste gerade nicht erreichbar</p><p className="mt-1 text-sm text-amber-700">Bitte versuche es gleich noch einmal.</p></div> : countries.length ? <div className="max-h-[52vh] divide-y divide-slate-100 overflow-y-auto">{countries.map((country) => (
-                  <button type="button" key={country.code} onClick={() => { setSelectedCountry(country); setCitySearch(""); }} className="flex w-full items-center gap-4 px-5 py-3.5 text-left transition duration-150 hover:bg-emerald-50 focus:bg-emerald-50" data-testid={`country-option-${country.code.toLowerCase()}`}>
+                {countriesQuery.isLoading ? <div className="p-8 text-center text-sm font-semibold text-slate-500">{copy.loading}</div> : countriesQuery.isError ? <div className="p-8 text-center"><p className="font-bold text-amber-800">{copy.unavailable}</p></div> : countries.length ? <div className="max-h-[52vh] divide-y divide-slate-100 overflow-y-auto">{countries.map((country) => (
+                  <button type="button" key={country.code} onClick={() => { setSelectedCountry(country); setCitySearch(""); setStage("city"); }} className="flex w-full items-center gap-4 px-5 py-3.5 text-left transition duration-150 hover:bg-emerald-50 focus:bg-emerald-50" data-testid={`country-option-${country.code.toLowerCase()}`}>
                     <img src={country.flag_url} alt={`Flagge ${country.local_name}`} className="h-7 w-10 rounded-md border border-slate-200 object-cover shadow-sm" data-testid={`country-flag-${country.code.toLowerCase()}`} />
                     <span className="min-w-0 flex-1 font-bold text-slate-800" data-testid={`country-name-${country.code.toLowerCase()}`}>{country.local_name} <span className="font-medium text-slate-400">({country.english_name})</span></span>
                     <ChevronRight className="h-4 w-4 text-slate-300" />
                   </button>
-                ))}</div> : <div className="p-8 text-center text-sm text-slate-500">Kein Land mit „{countrySearch}“ gefunden.</div>}
+                ))}</div> : <div className="p-8 text-center text-sm text-slate-500">{copy.noResult}</div>}
               </div>
             </>
-          ) : (
+          ) : selectedCountry ? (
             <>
-              <button type="button" onClick={() => setSelectedCountry(null)} className="mb-6 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-500 transition hover:bg-white hover:text-emerald-700" data-testid="country-back-button"><ArrowLeft className="h-4 w-4" /> Land ändern</button>
+              <button type="button" onClick={() => { setSelectedCountry(null); setStage("country"); }} className="mb-6 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-500 transition hover:bg-white hover:text-emerald-700" data-testid="country-back-button"><ArrowLeft className="h-4 w-4" /> {copy.changeCountry}</button>
               <div className="mb-7 flex items-start gap-4">
                 <img src={selectedCountry.flag_url} alt={`Flagge ${selectedCountry.local_name}`} className="mt-1 h-10 w-14 rounded-lg border border-slate-200 object-cover shadow-sm" data-testid="selected-country-flag" />
-                <div><div className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-700"><MapPin className="h-3.5 w-3.5" /> Schritt 2 von 2</div><h1 className="text-3xl font-black tracking-[-0.035em] text-slate-950 sm:text-5xl" data-testid="city-selection-title">Wähle deine Stadt</h1><p className="mt-3 text-base text-slate-500">Städte in {selectedCountry.local_name} ({selectedCountry.english_name})</p></div>
+                <div><div className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-700"><MapPin className="h-3.5 w-3.5" /> {copy.cityStep}</div><h1 className="text-3xl font-black tracking-[-0.035em] text-slate-950 sm:text-5xl" data-testid="city-selection-title">{copy.cityTitle}</h1><p className="mt-3 text-base text-slate-500">{copy.citiesIn} {selectedCountry.local_name} ({selectedCountry.english_name})</p></div>
               </div>
-              <div className="sticky top-4 z-10 mb-4 flex items-center rounded-2xl border border-slate-200 bg-white/95 px-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-100"><Search className="h-4 w-4 shrink-0 text-emerald-600" /><Input value={citySearch} onChange={(event) => setCitySearch(event.target.value)} placeholder="Stadt suchen …" className="h-14 border-0 bg-transparent shadow-none focus-visible:ring-0" autoFocus data-testid="city-search-input" /></div>
+              <div className="sticky top-4 z-10 mb-4 flex items-center rounded-2xl border border-slate-200 bg-white/95 px-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-100"><Search className="h-4 w-4 shrink-0 text-emerald-600" /><Input value={citySearch} onChange={(event) => setCitySearch(event.target.value)} placeholder={copy.searchCity} className="h-14 border-0 bg-transparent shadow-none focus-visible:ring-0" autoFocus data-testid="city-search-input" /></div>
               <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_14px_45px_rgba(15,23,42,0.07)]" data-testid="city-list">
-                {citiesQuery.isLoading ? <div className="p-8 text-center text-sm font-semibold text-slate-500">Städte werden geladen …</div> : citiesQuery.isError ? <div className="p-8 text-center"><p className="font-bold text-amber-800">Städte gerade nicht erreichbar</p><p className="mt-1 text-sm text-amber-700">Gehe zurück und versuche es erneut.</p></div> : cities.length ? <div className="grid max-h-[52vh] grid-cols-1 gap-px overflow-y-auto bg-slate-100 sm:grid-cols-2">{cities.map((city) => (
+                {citiesQuery.isLoading ? <div className="p-8 text-center text-sm font-semibold text-slate-500">{copy.loading}</div> : citiesQuery.isError ? <div className="p-8 text-center"><p className="font-bold text-amber-800">{copy.unavailable}</p></div> : cities.length ? <div className="grid max-h-[52vh] grid-cols-1 gap-px overflow-y-auto bg-slate-100 sm:grid-cols-2">{cities.map((city) => (
                   <button type="button" key={city.id} onClick={() => onComplete({ country: selectedCountry, city })} className="flex items-center justify-between bg-white px-5 py-4 text-left font-bold text-slate-700 transition duration-150 hover:bg-emerald-50 hover:text-emerald-800" data-testid={`city-option-${city.id.toLowerCase().replaceAll(" ", "-")}`}><span>{city.name}</span><ChevronRight className="h-4 w-4 text-slate-300" /></button>
-                ))}</div> : <div className="p-8 text-center text-sm text-slate-500">Keine Stadt mit „{citySearch}“ gefunden.</div>}
+                ))}</div> : <div className="p-8 text-center text-sm text-slate-500">{copy.noResult}</div>}
               </div>
             </>
-          )}
+          ) : null}
         </div>
-        <p className="mt-7 text-center text-xs text-slate-400" data-testid="location-data-source">Länder- und Städtedaten: countries.dev</p>
+        <p className="mt-7 text-center text-xs text-slate-400" data-testid="location-data-source">{copy.source}</p>
       </div>
     </div>
   );
@@ -286,6 +318,7 @@ export default function Home() {
   const [watchlistOpen, setWatchlistOpen] = useState(false);
   const [location, setLocation] = useState<SelectedLocation | null>(null);
   const [locationOpen, setLocationOpen] = useState(true);
+  const [languageCode, setLanguageCode] = useState<LanguageCode>("de");
   const { data, isLoading, isError } = useQuery({
     queryKey: ["products", submittedQuery, location?.country.code, location?.city.name],
     queryFn: () => fetchProducts(submittedQuery, location?.country.code ?? "", location?.city.name ?? ""),
@@ -324,6 +357,7 @@ export default function Home() {
       <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur-xl" data-testid="header-nav">
         <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-5 px-5 py-4 lg:px-10">
           <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-[0_8px_18px_rgba(22,163,74,0.25)]"><ShoppingBasket className="h-5 w-5" /></div><div><p className="text-lg font-black tracking-tight text-slate-900">Markt<span className="text-emerald-600">Fuchs</span></p><p className="hidden text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 sm:block">Preise clever vergleichen</p></div></div>
+          <button type="button" onClick={() => setLocationOpen(true)} className="flex items-center gap-2 rounded-full bg-slate-100 px-3 py-2 text-xs font-bold uppercase text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700" data-testid="language-change-button"><Languages className="h-3.5 w-3.5" /> {languageCode}</button>
           <button type="button" onClick={() => setLocationOpen(true)} className="hidden items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 md:flex" data-testid="location-change-button"><MapPin className="h-3.5 w-3.5 text-emerald-600" /> {location ? `${location.city.name}, ${location.country.code}` : "Region wählen"} <span className="ml-1 text-slate-400">⌄</span></button>
           <button type="button" onClick={() => setWatchlistOpen(true)} className="relative flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700" data-testid="watchlist-nav-button"><Heart className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Merkliste</span>{favoriteIds.size > 0 ? <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white">{favoriteIds.size}</span> : null}</button>
         </div>
@@ -347,7 +381,7 @@ export default function Home() {
         <div className="mt-10 flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-5 py-4 text-sm text-emerald-800 sm:flex-row sm:items-center" data-testid="demo-data-notice"><div className="flex items-center gap-2 font-bold"><Sparkles className="h-4 w-4" /> MarktFuchs Demo-Angebote</div><p className="text-emerald-800/80">{location ? `${location.city.name}, ${location.country.local_name}` : "Region auswählen"} · {data?.available_stores.length ? `${data.available_stores.join(", ")} verfügbar` : "regionale Märkte werden nach der Auswahl geladen"}</p></div>
       </main>
       {watchlistOpen ? <Watchlist products={data?.results ?? []} favoriteIds={favoriteIds} onClose={() => setWatchlistOpen(false)} onToggleFavorite={toggleFavorite} /> : null}
-      {locationOpen ? <LocationGate onComplete={(nextLocation) => { setLocation(nextLocation); setLocationOpen(false); setFavoriteIds(new Set()); }} /> : null}
+      {locationOpen ? <LocationGate languageCode={languageCode} onLanguageChange={setLanguageCode} onComplete={(nextLocation) => { setLocation(nextLocation); setLocationOpen(false); setFavoriteIds(new Set()); }} /> : null}
     </div>
   );
 }

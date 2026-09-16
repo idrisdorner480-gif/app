@@ -1,0 +1,69 @@
+{
+  "iteration": 2,
+  "summary": "8/8 acceptance criteria covered: 3 browser checks (all passed) + 5 new backend test files (all passed) + 1 pre-existing backend test updated to match the new international-market-expansion behavior (now passing). No bugs found.",
+  "passed": 8,
+  "failed": 0,
+  "retest_needed": false,
+  "bugs": [],
+  "action_items": [
+    "Updated pre-existing test_tscheck_product_search_no_region_data.py: it previously asserted available_stores==[] for US/Chicago, which is now stale because this feature intentionally expanded the market register to many more countries (per spec_deviations, chains exist for many countries but product prices are still only maintained for DE/AT). Adjusted the assertion to expect non-empty available_stores while results stay empty (no US product prices yet) - this reflects the documented spec_deviation, not a regression."
+  ],
+  "checks": [
+    {
+      "criterion": "Beim Öffnen kommt die Sprachwahl vor Länder- und Stadtwahl und nutzt dieselbe durchsuchbare Listenstruktur.",
+      "name": "language-then-country-then-city-flow",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "language-selection-title + language-search-input visible on first load; country-selection-title/city-selection-title absent until a language is picked. Selecting language-option-de reveals country-selection-title with country-search-input; searching 'Österreich' and selecting country-option-at reveals city-selection-title."
+    },
+    {
+      "criterion": "Die Sprachwahl enthält native und englische Sprachbezeichnungen und kann später im Kopfbereich erneut geöffnet werden.",
+      "name": "language-list-native-english-and-reopen",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "language-option-{de,fr,it,es,tr,nl,pl,pt} each contain both native and English names (e.g. 'Deutsch'+'German', 'Português'+'Portuguese'). After completing DE/Berlin selection, language-change-button reopens language-selection-title."
+    },
+    {
+      "criterion": "Österreich zeigt die vom Nutzer genannten regionalen Ketten statt nur LIDL und Penny.",
+      "name": "test_innsbruck_markets_include_regional_chains",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "GET /api/locations/markets?country=AT&city=Innsbruck -> 200; stores include SPAR, BILLA, MPREIS, BILLA PLUS, HOFER, INTERSPAR, EUROSPAR."
+    },
+    {
+      "criterion": "Die neuen österreichischen Märkte besitzen eigene regionale Demo-Preise.",
+      "name": "test_wagner_pizza_has_offer_per_austrian_chain_in_innsbruck",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "GET /api/products/search?q=piza&country=AT&city=Innsbruck -> 200; Wagner pizza offers cover SPAR/BILLA/MPREIS/BILLA PLUS/HOFER/INTERSPAR/EUROSPAR, every offer.country_code == 'AT'."
+    },
+    {
+      "criterion": "Regionale Verfügbarkeit unterscheidet österreichische Städte sinnvoll.",
+      "name": "test_innsbruck_has_mpreis / test_vienna_has_no_mpreis_but_has_other_chains",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "GET /api/locations/markets?country=AT&city=Innsbruck -> stores include MPREIS. GET /api/locations/markets?country=AT&city=Vienna -> stores exclude MPREIS but include SPAR, BILLA, BILLA PLUS, HOFER, INTERSPAR, EUROSPAR, LIDL, Penny."
+    },
+    {
+      "criterion": "Deutsche Angebote werden nicht mit österreichischen Ketten vermischt.",
+      "name": "test_berlin_pizza_offers_are_de_only",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "GET /api/products/search?q=piza&country=DE&city=Berlin -> 200; all offers have country_code == 'DE'; none of MPREIS/BILLA/HOFER/INTERSPAR/EUROSPAR present."
+    },
+    {
+      "criterion": "Das Marktregister deckt zusätzlich mehrere große internationale Regionen ab.",
+      "name": "test_region_markets_have_local_chains[FR-Paris / US-Chicago / GB-London / CH-Zürich]",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "GET /api/locations/markets for FR/Paris, US/Chicago, GB/London, CH/Zürich all -> 200 with >=3 stores each, overlapping expected local chains (Carrefour/E.Leclerc, Walmart/Kroger/Costco, Tesco/Sainsbury's/Asda, Coop/Migros respectively)."
+    },
+    {
+      "criterion": "Produktsuche und Merkliste bleiben im österreichischen Flow nutzbar.",
+      "name": "austria-innsbruck-search-and-watchlist",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "After Deutsch -> Österreich -> Innsbruck, searching 'piza' shows Wagner pizza plus SPAR/BILLA/MPREIS/HOFER text on the page; favoriting a product and opening watchlist-nav-button shows watchlist-sheet-container with the saved item; no console/request errors."
+    }
+  ]
+}
