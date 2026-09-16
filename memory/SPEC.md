@@ -4,9 +4,9 @@
 MarktFuchs startet mit einer Sprachwahl in derselben durchsuchbaren Listenstruktur wie die anschließende weltweite Länderauswahl. Die Standortschritte sind auf Deutsch, Englisch, Französisch, Italienisch, Spanisch, Türkisch, Niederländisch, Polnisch und Portugiesisch verfügbar. Jedes Land erscheint mit Flagge, lokalem Namen und englischem Namen. Danach wird eine Stadt des Landes gewählt. Erst dann vergleicht die App lokale Demo-Angebote der in dieser Region verfügbaren Märkte.
 
 ## Datenmodell
-- `Product`: id, name, brand, category, package_size, image_url, keywords, offers
-- `StoreOffer`: store, country_code, price, unit_price, distance_km, available, discount_percent
-- `ProductSearchResponse`: query, corrected_query, results, total, data_source
+- `Product`: id, barcode, name, brand, category, package_size, image_url, data_source, product_url, keywords, offers
+- `StoreOffer`: store, country_code, branch_id, branch_name, address, price, unit_price, distance_km, available, stock_status, discount_percent
+- `ProductSearchResponse`: query, corrected_query, results, total, data_source, page, page_size, has_more, catalog_source
 - `Country`: code, local_name, english_name, flag_url
 - `City`: id, name, population
 - `RegionMarkets`: country_code, city, stores, data_source
@@ -20,9 +20,10 @@ MarktFuchs startet mit einer Sprachwahl in derselben durchsuchbaren Listenstrukt
 5. Ergebnisansicht wechselt zwischen Karten und kompakter Vergleichstabelle.
 6. Produkte werden lokal in einer Merkliste gespeichert; Sonner bestätigt das Hinzufügen/Entfernen.
 7. Österreichische Regionen zeigen eigene Demo-Angebote von SPAR, BILLA, MPREIS, BILLA PLUS, HOFER, INTERSPAR, EUROSPAR, LIDL und Penny; Stadt-Overrides berücksichtigen die tatsächliche regionale Verfügbarkeit (z. B. MPREIS in Innsbruck).
+8. Produktstammdaten werden bei der Suche paginiert aus Open Food Facts ergänzt; Haushaltsbegriffe werden zusätzlich in Open Products Facts und Drogeriebegriffe in Open Beauty Facts gesucht. Jeder externe Datensatz erhält deterministisch erzeugte, klar als Demo markierte Filialpreise, Adressen und die Statuswerte `verfügbar`, `knapp` oder `nicht verfügbar` für die ausgewählte Stadt.
 
 ## Auth / Rollen
 Keine Authentifizierung im MVP.
 
 ## Datenstatus
-Länder- und Städtestammdaten werden schlüsselfrei über countries.dev geladen und besitzen lokale Fallbacks. Das regionale Marktregister enthält große Ketten für zahlreiche Länder; eigene Produktpreise sind derzeit für Deutschland und Österreich gepflegt. Die Angebote und regionalen Marktfreigaben sind REALISTISCHE DEMO-DATEN im Backend. LIVE-HÄNDLERDATEN sind noch NICHT angebunden; dafür fehlen konkrete Händlerquellen, API-Verträge und Zugänge.
+Länder- und Städtestammdaten werden schlüsselfrei über countries.dev geladen und besitzen lokale Fallbacks. Produktinformationen und Bilder für Deutschland und Österreich kommen aus Open Food Facts, Open Products Facts und Open Beauty Facts (ODbL/DBCL; Bilder CC BY-SA) und werden serverseitig zwischengespeichert. Preise, konkrete Filialadressen und Bestandsstatus sind weiterhin klar markierte DEMO-DATEN und keine Live-Verfügbarkeitszusage.

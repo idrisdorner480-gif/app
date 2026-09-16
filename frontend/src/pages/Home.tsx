@@ -15,6 +15,7 @@ import {
   Search,
   ShoppingBasket,
   Sparkles,
+  Store,
   Tag,
   X,
 } from "lucide-react";
@@ -32,6 +33,7 @@ type SortOption = "price" | "unit" | "distance" | "discount";
 type ViewMode = "cards" | "table";
 
 const POPULAR_SEARCHES = ["Pizza", "Red Bull 24er", "Kaffee", "Milch 1L", "Nutella", "Äpfel"];
+const PRODUCT_CATEGORIES = ["Getränke", "Obst & Gemüse", "Milchprodukte", "Tiefkühl", "Backwaren", "Fleisch", "Vegan", "Haushalt", "Drogerie"];
 const STORE_STYLES: Record<string, string> = {
   REWE: "bg-[#e2001a] text-white",
   EDEKA: "bg-[#005ca9] text-[#ffed00]",
@@ -51,8 +53,11 @@ const STORE_STYLES: Record<string, string> = {
 const formatEuro = (value: number) =>
   value.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
 
-const lowestOffer = (product: Product) =>
-  product.offers.reduce((lowest, current) => (current.price < lowest.price ? current : lowest));
+const lowestOffer = (product: Product) => {
+  const availableOffers = product.offers.filter((offer) => offer.available);
+  const candidates = availableOffers.length ? availableOffers : product.offers;
+  return candidates.reduce((lowest, current) => (current.price < lowest.price ? current : lowest));
+};
 
 const closestOffer = (product: Product) =>
   product.offers.reduce((closest, current) =>
@@ -70,20 +75,25 @@ function StoreMark({ store }: { store: string }) {
 }
 
 function OfferRow({ productId, offer, isBest }: { productId: string; offer: StoreOffer; isBest: boolean }) {
+  const statusStyle = offer.stock_status === "verfügbar"
+    ? "bg-emerald-100 text-emerald-700"
+    : offer.stock_status === "knapp"
+      ? "bg-amber-100 text-amber-700"
+      : "bg-slate-200 text-slate-500";
   return (
     <div
-      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${isBest ? "bg-emerald-50 ring-1 ring-emerald-200" : "bg-slate-50"}`}
-      data-testid={`store-offer-item-${productId}-${offer.store.toLowerCase().replace(" ", "-")}`}
+      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 ${isBest ? "bg-emerald-50 ring-1 ring-emerald-200" : "bg-slate-50"} ${!offer.available ? "opacity-65" : ""}`}
+      data-testid={`store-offer-item-${productId}-${offer.branch_id}`}
     >
       <StoreMark store={offer.store} />
       <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-semibold text-slate-700">{offer.store}</p>
-        <p className="flex items-center gap-1 text-[11px] text-slate-400">
-          <MapPin className="h-3 w-3" /> {offer.distance_km.toFixed(1).replace(".", ",")} km
-        </p>
+        <p className="truncate text-xs font-semibold text-slate-700" data-testid={`branch-name-${offer.branch_id}`}>{offer.branch_name || offer.store}</p>
+        <p className="truncate text-[10px] text-slate-400" data-testid={`branch-address-${offer.branch_id}`}>{offer.address}</p>
+        <p className="mt-1 flex items-center gap-1 text-[11px] text-slate-400"><MapPin className="h-3 w-3" /> {offer.distance_km.toFixed(1).replace(".", ",")} km</p>
       </div>
       <div className="text-right">
-        <p className={`text-sm font-extrabold ${isBest ? "text-emerald-700" : "text-slate-800"}`}>
+        <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${statusStyle}`} data-testid={`stock-status-${offer.branch_id}`}>{offer.stock_status}</span>
+        <p className={`mt-1 text-sm font-extrabold ${isBest ? "text-emerald-700" : "text-slate-800"}`}>
           {formatEuro(offer.price)}
         </p>
         <p className="text-[10px] font-semibold text-slate-400">
@@ -122,9 +132,9 @@ function ProductCard({ product, isFavorite, onToggleFavorite }: { product: Produ
       </div>
       <CardContent className="p-5">
         <div className="mb-4">
-          <p className="mb-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{product.brand}</p>
+          <div className="mb-1 flex items-center justify-between gap-2"><p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{product.brand}</p><span className="rounded-full bg-slate-100 px-2 py-1 text-[9px] font-bold text-slate-500" data-testid={`product-source-${product.id}`}>{product.data_source}</span></div>
           <h3 className="min-h-12 text-lg font-bold leading-tight tracking-tight text-slate-900" data-testid={`product-title-${product.id}`}>{product.name}</h3>
-          <p className="mt-1 text-sm text-slate-500">{product.package_size}</p>
+          <p className="mt-1 text-sm text-slate-500">{product.package_size}{product.barcode ? <span className="ml-2 text-[10px] text-slate-400">EAN {product.barcode}</span> : null}</p>
         </div>
         <div className="mb-4 flex items-end justify-between border-b border-slate-100 pb-4">
           <div>
@@ -134,7 +144,7 @@ function ProductCard({ product, isFavorite, onToggleFavorite }: { product: Produ
           </div>
           <div className="text-right text-xs text-slate-500">
             <p className="mb-1 flex items-center justify-end gap-1"><MapPin className="h-3.5 w-3.5 text-emerald-600" />{nearest.distance_km.toFixed(1).replace(".", ",")} km entfernt</p>
-            <p className="font-semibold text-slate-700">{product.offers.length} Märkte verglichen</p>
+            <p className="font-semibold text-slate-700">{product.offers.length} Filialen geprüft</p>
           </div>
         </div>
         <div className="space-y-2">
@@ -319,9 +329,10 @@ export default function Home() {
   const [location, setLocation] = useState<SelectedLocation | null>(null);
   const [locationOpen, setLocationOpen] = useState(true);
   const [languageCode, setLanguageCode] = useState<LanguageCode>("de");
+  const [page, setPage] = useState(1);
   const { data, isLoading, isError } = useQuery({
-    queryKey: ["products", submittedQuery, location?.country.code, location?.city.name],
-    queryFn: () => fetchProducts(submittedQuery, location?.country.code ?? "", location?.city.name ?? ""),
+    queryKey: ["products", submittedQuery, location?.country.code, location?.city.name, page],
+    queryFn: () => fetchProducts(submittedQuery, location?.country.code ?? "", location?.city.name ?? "", page),
     enabled: Boolean(location),
     retry: false,
   });
@@ -349,6 +360,7 @@ export default function Home() {
 
   const submitSearch = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setPage(1);
     setSubmittedQuery(query.trim());
   };
 
@@ -368,20 +380,23 @@ export default function Home() {
           <div className="pointer-events-none absolute -right-10 -top-20 h-72 w-72 rounded-full bg-emerald-200/35 blur-3xl" /><div className="pointer-events-none absolute bottom-0 left-1/3 h-28 w-80 rounded-full bg-lime-100/50 blur-3xl" />
           <div className="relative max-w-3xl"><div className="mb-4 inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-700"><Sparkles className="h-3.5 w-3.5" /> Angebote in deiner Nähe</div><h1 className="text-4xl font-black leading-[1.05] tracking-[-0.04em] text-slate-950 sm:text-5xl lg:text-6xl">Finde den besten Preis.<br /><span className="text-emerald-600">Ganz einfach.</span></h1><p className="mt-5 max-w-xl text-base leading-relaxed text-slate-500 sm:text-lg">Suche nach Produkten, Marken oder Stichwörtern – auch kleine Tippfehler sind kein Problem.</p>
             <form onSubmit={submitSearch} className="relative mt-8 flex max-w-2xl items-center rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_12px_35px_rgba(15,23,42,0.09)] focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-100" data-testid="product-search-form"><Search className="ml-3 h-5 w-5 shrink-0 text-emerald-600" /><Input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="z. B. „Red Bull 24er“ oder „Piza“" className="h-12 border-0 bg-transparent text-base shadow-none focus-visible:ring-0" data-testid="search-input-main" /><Button type="submit" className="h-12 rounded-xl bg-emerald-600 px-5 font-bold shadow-sm hover:bg-emerald-700" data-testid="search-submit-button">Suchen</Button></form>
-            <div className="mt-4 flex flex-wrap items-center gap-2"><span className="mr-1 text-xs font-bold uppercase tracking-[0.12em] text-slate-400">Beliebt</span>{POPULAR_SEARCHES.map((item) => <button type="button" key={item} onClick={() => { setQuery(item); setSubmittedQuery(item); }} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:text-emerald-700" data-testid={`popular-search-tag-${item.toLowerCase().replaceAll(" ", "-")}`}>{item}</button>)}</div>
+            <div className="mt-4 flex flex-wrap items-center gap-2"><span className="mr-1 text-xs font-bold uppercase tracking-[0.12em] text-slate-400">Beliebt</span>{POPULAR_SEARCHES.map((item) => <button type="button" key={item} onClick={() => { setQuery(item); setSubmittedQuery(item); setPage(1); }} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:-translate-y-0.5 hover:border-emerald-300 hover:text-emerald-700" data-testid={`popular-search-tag-${item.toLowerCase().replaceAll(" ", "-")}`}>{item}</button>)}</div>
+            <div className="mt-5 flex max-w-5xl flex-wrap gap-2" data-testid="product-category-list">{PRODUCT_CATEGORIES.map((category) => <button type="button" key={category} onClick={() => { setQuery(category); setSubmittedQuery(category); setPage(1); }} className="rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white transition hover:-translate-y-0.5 hover:bg-emerald-700" data-testid={`product-category-${category.toLowerCase().replaceAll(" ", "-").replaceAll("&", "und")}`}>{category}</button>)}</div>
           </div>
         </section>
 
         <section aria-label="Suchergebnisse" data-testid="search-results-section">
           <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 xl:flex-row xl:items-end xl:justify-between"><div><div className="flex items-center gap-2"><h2 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">{submittedQuery ? `Ergebnisse für „${submittedQuery}“` : "Alle Angebote"}</h2>{data?.total ? <Badge variant="secondary" className="rounded-full bg-emerald-100 text-emerald-700">{data.total} Treffer</Badge> : null}</div>{data?.corrected_query ? <button type="button" onClick={() => { setQuery(data.corrected_query ?? ""); setSubmittedQuery(data.corrected_query ?? ""); }} className="mt-2 flex items-center gap-1 text-sm font-semibold text-emerald-700 hover:underline" data-testid="fuzzy-suggestion-chip"><Sparkles className="h-3.5 w-3.5" /> Meintest du „{data.corrected_query}“?</button> : <p className="mt-2 text-sm text-slate-500">Preise und Entfernungen von Märkten in deiner Nähe im Vergleich</p>}</div><div className="flex flex-wrap items-center gap-2"><div className="flex rounded-xl border border-slate-200 bg-white p-1"><button type="button" onClick={() => setViewMode("cards")} className={`rounded-lg p-2 transition ${viewMode === "cards" ? "bg-emerald-100 text-emerald-700" : "text-slate-400 hover:text-slate-700"}`} aria-label="Große Kartenansicht" data-testid="view-toggle-cards"><LayoutGrid className="h-4 w-4" /></button><button type="button" onClick={() => setViewMode("table")} className={`rounded-lg p-2 transition ${viewMode === "table" ? "bg-emerald-100 text-emerald-700" : "text-slate-400 hover:text-slate-700"}`} aria-label="Kompakte Tabellenansicht" data-testid="view-toggle-table"><List className="h-4 w-4" /></button></div><div className="relative flex items-center rounded-xl border border-slate-200 bg-white px-3"><ArrowDownUp className="mr-2 h-3.5 w-3.5 text-emerald-600" /><select value={sortBy} onChange={(event) => setSortBy(event.target.value as SortOption)} className="h-10 bg-transparent pr-1 text-sm font-semibold text-slate-600 outline-none" aria-label="Sortierung" data-testid="sort-by-select"><option value="price">Günstigster Gesamtpreis</option><option value="unit">Bester Stückpreis</option><option value="distance">Nächste Filiale</option><option value="discount">Höchster Rabatt</option></select></div></div></div>
 
-          {isLoading ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3"><div className="h-[520px] animate-pulse rounded-[1.35rem] bg-slate-200/70" /><div className="hidden h-[520px] animate-pulse rounded-[1.35rem] bg-slate-200/70 md:block" /><div className="hidden h-[520px] animate-pulse rounded-[1.35rem] bg-slate-200/70 xl:block" /></div> : isError ? <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-center"><Tag className="mx-auto h-8 w-8 text-amber-600" /><h3 className="mt-3 text-lg font-bold text-amber-900">Angebote gerade nicht erreichbar</h3><p className="mt-1 text-sm text-amber-800">Die Oberfläche bleibt verfügbar. Bitte versuche die Suche gleich noch einmal.</p></div> : data && data.available_stores.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center" data-testid="region-no-markets"><Globe2 className="mx-auto h-8 w-8 text-slate-400" /><h3 className="mt-3 text-lg font-bold text-slate-800">Noch keine Märkte für diese Region</h3><p className="mt-1 text-sm text-slate-500">Für {location?.city.name} sind aktuell keine regionalen Demo-Märkte hinterlegt. Wähle oben eine andere Region.</p></div> : products.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center"><Search className="mx-auto h-8 w-8 text-slate-400" /><h3 className="mt-3 text-lg font-bold text-slate-800">Keine passenden Produkte gefunden</h3><p className="mt-1 text-sm text-slate-500">Probiere zum Beispiel „Pizza“, „Milch“ oder „Red Bull“.</p></div> : viewMode === "cards" ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{products.map((product) => <ProductCard key={product.id} product={product} isFavorite={favoriteIds.has(product.id)} onToggleFavorite={() => toggleFavorite(product.id)} />)}</div> : <ComparisonTable products={products} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} />}
+          {isLoading ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3"><div className="h-[520px] animate-pulse rounded-[1.35rem] bg-slate-200/70" /><div className="hidden h-[520px] animate-pulse rounded-[1.35rem] bg-slate-200/70 md:block" /><div className="hidden h-[520px] animate-pulse rounded-[1.35rem] bg-slate-200/70 xl:block" /></div> : isError ? <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-center"><Tag className="mx-auto h-8 w-8 text-amber-600" /><h3 className="mt-3 text-lg font-bold text-amber-900">Angebote gerade nicht erreichbar</h3><p className="mt-1 text-sm text-amber-800">Die Oberfläche bleibt verfügbar. Bitte versuche die Suche gleich noch einmal.</p></div> : data && data.available_stores.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center" data-testid="region-no-markets"><Globe2 className="mx-auto h-8 w-8 text-slate-400" /><h3 className="mt-3 text-lg font-bold text-slate-800">Noch keine Märkte für diese Region</h3><p className="mt-1 text-sm text-slate-500">Für {location?.city.name} sind aktuell keine regionalen Demo-Märkte hinterlegt. Wähle oben eine andere Region.</p></div> : products.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center"><Search className="mx-auto h-8 w-8 text-slate-400" /><h3 className="mt-3 text-lg font-bold text-slate-800">Keine passenden Produkte gefunden</h3><p className="mt-1 text-sm text-slate-500">Probiere zum Beispiel „Pizza“, „Milch“, „Hafermilch“, „Shampoo“ oder „Waschmittel“.</p></div> : viewMode === "cards" ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{products.map((product) => <ProductCard key={product.id} product={product} isFavorite={favoriteIds.has(product.id)} onToggleFavorite={() => toggleFavorite(product.id)} />)}</div> : <ComparisonTable products={products} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} />}
+          {data && products.length > 0 ? <div className="mt-8 flex items-center justify-center gap-3" data-testid="catalog-pagination"><Button variant="outline" disabled={page <= 1 || isLoading} onClick={() => { setPage((current) => Math.max(1, current - 1)); window.scrollTo({ top: 650, behavior: "smooth" }); }} data-testid="catalog-previous-page">Zurück</Button><span className="rounded-full bg-white px-4 py-2 text-sm font-bold text-slate-600 shadow-sm" data-testid="catalog-page-number">Seite {page}</span><Button disabled={!data.has_more || isLoading} onClick={() => { setPage((current) => current + 1); window.scrollTo({ top: 650, behavior: "smooth" }); }} className="bg-emerald-600 hover:bg-emerald-700" data-testid="catalog-next-page">Weitere Produkte</Button></div> : null}
         </section>
 
-        <div className="mt-10 flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-5 py-4 text-sm text-emerald-800 sm:flex-row sm:items-center" data-testid="demo-data-notice"><div className="flex items-center gap-2 font-bold"><Sparkles className="h-4 w-4" /> MarktFuchs Demo-Angebote</div><p className="text-emerald-800/80">{location ? `${location.city.name}, ${location.country.local_name}` : "Region auswählen"} · {data?.available_stores.length ? `${data.available_stores.join(", ")} verfügbar` : "regionale Märkte werden nach der Auswahl geladen"}</p></div>
+        <div className="mt-10 flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-5 py-4 text-sm text-emerald-800 sm:flex-row sm:items-center" data-testid="demo-data-notice"><div className="flex items-center gap-2 font-bold"><Sparkles className="h-4 w-4" /> Produktkatalog & Demo-Filialen</div><p className="text-emerald-800/80">{location ? `${location.city.name}, ${location.country.local_name}` : "Region auswählen"} · {data?.catalog_source ?? "Open Food Facts"} · Preise, Adressen und Bestände sind Demo-Daten</p></div>
+        <div className="mt-4 flex items-start gap-2 rounded-2xl bg-white px-5 py-4 text-xs leading-relaxed text-slate-500" data-testid="open-food-facts-attribution"><Store className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /><p>Produktinformationen und Bilder: <a href="https://world.openfoodfacts.org" target="_blank" rel="noreferrer" className="font-bold text-emerald-700 hover:underline">Open Food Facts</a>, Open Products Facts und Open Beauty Facts (ODbL/DBCL; Bilder CC BY-SA). Filialpreise, Adressen und Verfügbarkeiten sind simulierte Demo-Daten und keine Live-Bestandszusage.</p></div>
       </main>
       {watchlistOpen ? <Watchlist products={data?.results ?? []} favoriteIds={favoriteIds} onClose={() => setWatchlistOpen(false)} onToggleFavorite={toggleFavorite} /> : null}
-      {locationOpen ? <LocationGate languageCode={languageCode} onLanguageChange={setLanguageCode} onComplete={(nextLocation) => { setLocation(nextLocation); setLocationOpen(false); setFavoriteIds(new Set()); }} /> : null}
+      {locationOpen ? <LocationGate languageCode={languageCode} onLanguageChange={setLanguageCode} onComplete={(nextLocation) => { setLocation(nextLocation); setLocationOpen(false); setFavoriteIds(new Set()); setPage(1); }} /> : null}
     </div>
   );
 }

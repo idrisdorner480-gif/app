@@ -6,6 +6,7 @@ from fastapi import APIRouter, Query
 
 from models.products import Product, ProductSearchResponse, StoreOffer
 from lib.regions import available_stores
+from lib.product_catalog import attach_branch_to_offer, search_open_food_products
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -234,25 +235,43 @@ async def search_products(
     q: str = Query(default="", max_length=80),
     country: str = Query(default="DE", min_length=2, max_length=2),
     city: str = Query(default="Berlin", min_length=1, max_length=120),
+    page: int = Query(default=1, ge=1, le=1000),
+    page_size: int = Query(default=24, ge=6, le=36),
 ) -> ProductSearchResponse:
     country_code = country.upper()
     region_stores = available_stores(country_code, city)
-    results = []
+    results: list[Product] = []
     for product in DEMO_PRODUCTS:
         offers = [
-            offer
-            for offer in product.offers
+            attach_branch_to_offer(offer, city, index)
+            for index, offer in enumerate(product.offers)
             if offer.country_code == country_code and offer.store in region_stores
         ]
-        if offers and matches(product, q):
+        if page == 1 and offers and matches(product, q):
             results.append(product.model_copy(update={"offers": offers}))
+    external_query = corrected_query(q) or q
+    external_products, external_total, catalog_source = await search_open_food_products(
+        external_query,
+        country_code,
+        city,
+        region_stores,
+        page,
+        page_size,
+    )
+    existing_ids = {product.id for product in results}
+    results.extend(product for product in external_products if product.id not in existing_ids)
+    total = external_total + (len(results) - len(external_products) if page == 1 else 0)
     return ProductSearchResponse(
         query=q,
         corrected_query=corrected_query(q),
         results=results,
-        total=len(results),
-        data_source="Demo-Angebote · regionale Marktbeispiele",
+        total=total,
+        data_source="Produktstammdaten: Open Food Facts · Preise & Filialbestände: Demo",
         country_code=country_code,
         city=city,
         available_stores=region_stores,
+        page=page,
+        page_size=page_size,
+        has_more=len(external_products) >= page_size,
+        catalog_source=catalog_source,
     )
