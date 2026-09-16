@@ -28,3 +28,6 @@ class ProductSearchResponse(BaseModel):
     results: List[Product]
     total: int
     data_source: str
+    country_code: str
+    city: str
+    available_stores: List[str] = Field(default_factory=list)

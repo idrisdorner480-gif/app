@@ -26,7 +26,12 @@ export interface ProductSearchResponse {
   results: Product[];
   total: number;
   data_source: string;
+  country_code: string;
+  city: string;
+  available_stores: string[];
 }
 
-export const fetchProducts = (query: string) =>
-  apiGet<ProductSearchResponse>(`/products/search?q=${encodeURIComponent(query)}`);
+export const fetchProducts = (query: string, countryCode: string, city: string) =>
+  apiGet<ProductSearchResponse>(
+    `/products/search?q=${encodeURIComponent(query)}&country=${encodeURIComponent(countryCode)}&city=${encodeURIComponent(city)}`,
+  );

@@ -5,6 +5,7 @@ from difflib import SequenceMatcher
 from fastapi import APIRouter, Query
 
 from models.products import Product, ProductSearchResponse, StoreOffer
+from lib.regions import available_stores
 
 router = APIRouter(prefix="/products", tags=["products"])
 
@@ -193,12 +194,25 @@ def corrected_query(query: str) -> str | None:
 
 
 @router.get("/search", response_model=ProductSearchResponse)
-async def search_products(q: str = Query(default="", max_length=80)) -> ProductSearchResponse:
-    results = [product for product in DEMO_PRODUCTS if matches(product, q)]
+async def search_products(
+    q: str = Query(default="", max_length=80),
+    country: str = Query(default="DE", min_length=2, max_length=2),
+    city: str = Query(default="Berlin", min_length=1, max_length=120),
+) -> ProductSearchResponse:
+    country_code = country.upper()
+    region_stores = available_stores(country_code, city)
+    results = []
+    for product in DEMO_PRODUCTS:
+        offers = [offer for offer in product.offers if offer.store in region_stores]
+        if offers and matches(product, q):
+            results.append(product.model_copy(update={"offers": offers}))
     return ProductSearchResponse(
         query=q,
         corrected_query=corrected_query(q),
         results=results,
         total=len(results),
-        data_source="Demo-Angebote · lokale Marktbeispiele",
+        data_source="Demo-Angebote · regionale Marktbeispiele",
+        country_code=country_code,
+        city=city,
+        available_stores=region_stores,
     )

@@ -2,8 +2,11 @@ import { useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
+  ArrowLeft,
   ArrowDownUp,
   Check,
+  ChevronRight,
+  Globe2,
   Heart,
   LayoutGrid,
   List,
@@ -20,6 +23,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { fetchCities, fetchCountries, type Country, type SelectedLocation } from "@/lib/locations";
 import { fetchProducts, type Product, type StoreOffer } from "@/lib/products";
 
 type SortOption = "price" | "unit" | "distance" | "discount";
@@ -176,6 +180,86 @@ function ComparisonTable({ products, favoriteIds, onToggleFavorite }: { products
   );
 }
 
+function LocationGate({ onComplete }: { onComplete: (location: SelectedLocation) => void }) {
+  const [countrySearch, setCountrySearch] = useState("");
+  const [citySearch, setCitySearch] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState<Country | null>(null);
+  const countriesQuery = useQuery({ queryKey: ["locations", "countries"], queryFn: fetchCountries, retry: 1 });
+  const citiesQuery = useQuery({
+    queryKey: ["locations", "cities", selectedCountry?.code],
+    queryFn: () => fetchCities(selectedCountry?.code ?? ""),
+    enabled: Boolean(selectedCountry),
+    retry: 1,
+  });
+
+  const countries = useMemo(() => {
+    const needle = countrySearch.trim().toLocaleLowerCase();
+    return (countriesQuery.data ?? []).filter((country) =>
+      !needle || `${country.local_name} ${country.english_name}`.toLocaleLowerCase().includes(needle),
+    );
+  }, [countriesQuery.data, countrySearch]);
+
+  const cities = useMemo(() => {
+    const needle = citySearch.trim().toLocaleLowerCase();
+    return (citiesQuery.data ?? []).filter((city) =>
+      !needle || city.name.toLocaleLowerCase().includes(needle),
+    );
+  }, [citiesQuery.data, citySearch]);
+
+  return (
+    <div className="fixed inset-0 z-[70] overflow-y-auto bg-[#f6f8f7]" data-testid="location-gate">
+      <div className="pointer-events-none fixed -left-20 -top-20 h-96 w-96 rounded-full bg-emerald-200/35 blur-3xl" />
+      <div className="pointer-events-none fixed -bottom-24 right-0 h-96 w-96 rounded-full bg-lime-100/60 blur-3xl" />
+      <div className="relative mx-auto flex min-h-svh max-w-5xl flex-col px-5 py-8 sm:px-8 lg:py-12">
+        <div className="mb-8 flex items-center gap-3" data-testid="location-brand">
+          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-[0_8px_18px_rgba(22,163,74,0.25)]"><ShoppingBasket className="h-5 w-5" /></div>
+          <p className="text-xl font-black tracking-tight text-slate-900">Markt<span className="text-emerald-600">Fuchs</span></p>
+        </div>
+
+        <div className="mx-auto w-full max-w-3xl flex-1">
+          {!selectedCountry ? (
+            <>
+              <div className="mb-7">
+                <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-700"><Globe2 className="h-3.5 w-3.5" /> Schritt 1 von 2</div>
+                <h1 className="text-3xl font-black tracking-[-0.035em] text-slate-950 sm:text-5xl" data-testid="country-selection-title">In welchem Land lebst du?</h1>
+                <p className="mt-3 text-base text-slate-500">Damit zeigen wir dir nur Supermärkte, die in deiner Region verfügbar sind.</p>
+              </div>
+              <div className="sticky top-4 z-10 mb-4 flex items-center rounded-2xl border border-slate-200 bg-white/95 px-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-100">
+                <Search className="h-4 w-4 shrink-0 text-emerald-600" />
+                <Input value={countrySearch} onChange={(event) => setCountrySearch(event.target.value)} placeholder="Land nach Namen suchen …" className="h-14 border-0 bg-transparent shadow-none focus-visible:ring-0" autoFocus data-testid="country-search-input" />
+              </div>
+              <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_14px_45px_rgba(15,23,42,0.07)]" data-testid="country-list">
+                {countriesQuery.isLoading ? <div className="p-8 text-center text-sm font-semibold text-slate-500">Länder werden geladen …</div> : countriesQuery.isError ? <div className="p-8 text-center"><p className="font-bold text-amber-800">Länderliste gerade nicht erreichbar</p><p className="mt-1 text-sm text-amber-700">Bitte versuche es gleich noch einmal.</p></div> : countries.length ? <div className="max-h-[52vh] divide-y divide-slate-100 overflow-y-auto">{countries.map((country) => (
+                  <button type="button" key={country.code} onClick={() => { setSelectedCountry(country); setCitySearch(""); }} className="flex w-full items-center gap-4 px-5 py-3.5 text-left transition duration-150 hover:bg-emerald-50 focus:bg-emerald-50" data-testid={`country-option-${country.code.toLowerCase()}`}>
+                    <img src={country.flag_url} alt={`Flagge ${country.local_name}`} className="h-7 w-10 rounded-md border border-slate-200 object-cover shadow-sm" data-testid={`country-flag-${country.code.toLowerCase()}`} />
+                    <span className="min-w-0 flex-1 font-bold text-slate-800" data-testid={`country-name-${country.code.toLowerCase()}`}>{country.local_name} <span className="font-medium text-slate-400">({country.english_name})</span></span>
+                    <ChevronRight className="h-4 w-4 text-slate-300" />
+                  </button>
+                ))}</div> : <div className="p-8 text-center text-sm text-slate-500">Kein Land mit „{countrySearch}“ gefunden.</div>}
+              </div>
+            </>
+          ) : (
+            <>
+              <button type="button" onClick={() => setSelectedCountry(null)} className="mb-6 inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-500 transition hover:bg-white hover:text-emerald-700" data-testid="country-back-button"><ArrowLeft className="h-4 w-4" /> Land ändern</button>
+              <div className="mb-7 flex items-start gap-4">
+                <img src={selectedCountry.flag_url} alt={`Flagge ${selectedCountry.local_name}`} className="mt-1 h-10 w-14 rounded-lg border border-slate-200 object-cover shadow-sm" data-testid="selected-country-flag" />
+                <div><div className="mb-2 inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-700"><MapPin className="h-3.5 w-3.5" /> Schritt 2 von 2</div><h1 className="text-3xl font-black tracking-[-0.035em] text-slate-950 sm:text-5xl" data-testid="city-selection-title">Wähle deine Stadt</h1><p className="mt-3 text-base text-slate-500">Städte in {selectedCountry.local_name} ({selectedCountry.english_name})</p></div>
+              </div>
+              <div className="sticky top-4 z-10 mb-4 flex items-center rounded-2xl border border-slate-200 bg-white/95 px-4 shadow-[0_10px_30px_rgba(15,23,42,0.08)] backdrop-blur-xl focus-within:border-emerald-400 focus-within:ring-4 focus-within:ring-emerald-100"><Search className="h-4 w-4 shrink-0 text-emerald-600" /><Input value={citySearch} onChange={(event) => setCitySearch(event.target.value)} placeholder="Stadt suchen …" className="h-14 border-0 bg-transparent shadow-none focus-visible:ring-0" autoFocus data-testid="city-search-input" /></div>
+              <div className="overflow-hidden rounded-3xl border border-slate-200/80 bg-white shadow-[0_14px_45px_rgba(15,23,42,0.07)]" data-testid="city-list">
+                {citiesQuery.isLoading ? <div className="p-8 text-center text-sm font-semibold text-slate-500">Städte werden geladen …</div> : citiesQuery.isError ? <div className="p-8 text-center"><p className="font-bold text-amber-800">Städte gerade nicht erreichbar</p><p className="mt-1 text-sm text-amber-700">Gehe zurück und versuche es erneut.</p></div> : cities.length ? <div className="grid max-h-[52vh] grid-cols-1 gap-px overflow-y-auto bg-slate-100 sm:grid-cols-2">{cities.map((city) => (
+                  <button type="button" key={city.id} onClick={() => onComplete({ country: selectedCountry, city })} className="flex items-center justify-between bg-white px-5 py-4 text-left font-bold text-slate-700 transition duration-150 hover:bg-emerald-50 hover:text-emerald-800" data-testid={`city-option-${city.id.toLowerCase().replaceAll(" ", "-")}`}><span>{city.name}</span><ChevronRight className="h-4 w-4 text-slate-300" /></button>
+                ))}</div> : <div className="p-8 text-center text-sm text-slate-500">Keine Stadt mit „{citySearch}“ gefunden.</div>}
+              </div>
+            </>
+          )}
+        </div>
+        <p className="mt-7 text-center text-xs text-slate-400" data-testid="location-data-source">Länder- und Städtedaten: countries.dev</p>
+      </div>
+    </div>
+  );
+}
+
 function Watchlist({ products, favoriteIds, onClose, onToggleFavorite }: { products: Product[]; favoriteIds: Set<string>; onClose: () => void; onToggleFavorite: (id: string) => void }) {
   const saved = products.filter((product) => favoriteIds.has(product.id));
   const savings = saved.reduce((total, product) => {
@@ -200,7 +284,14 @@ export default function Home() {
   const [sortBy, setSortBy] = useState<SortOption>("price");
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
   const [watchlistOpen, setWatchlistOpen] = useState(false);
-  const { data, isLoading, isError } = useQuery({ queryKey: ["products", submittedQuery], queryFn: () => fetchProducts(submittedQuery), retry: false });
+  const [location, setLocation] = useState<SelectedLocation | null>(null);
+  const [locationOpen, setLocationOpen] = useState(true);
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ["products", submittedQuery, location?.country.code, location?.city.name],
+    queryFn: () => fetchProducts(submittedQuery, location?.country.code ?? "", location?.city.name ?? ""),
+    enabled: Boolean(location),
+    retry: false,
+  });
 
   const products = useMemo(() => {
     const list = [...(data?.results ?? [])];
@@ -233,7 +324,7 @@ export default function Home() {
       <header className="sticky top-0 z-40 border-b border-slate-200/70 bg-white/85 backdrop-blur-xl" data-testid="header-nav">
         <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-5 px-5 py-4 lg:px-10">
           <div className="flex items-center gap-3"><div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-[0_8px_18px_rgba(22,163,74,0.25)]"><ShoppingBasket className="h-5 w-5" /></div><div><p className="text-lg font-black tracking-tight text-slate-900">Markt<span className="text-emerald-600">Fuchs</span></p><p className="hidden text-[10px] font-bold uppercase tracking-[0.18em] text-slate-400 sm:block">Preise clever vergleichen</p></div></div>
-          <div className="hidden items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-600 md:flex" data-testid="distance-radius-select"><MapPin className="h-3.5 w-3.5 text-emerald-600" /> Im Umkreis von 5 km <span className="ml-1 text-slate-400">⌄</span></div>
+          <button type="button" onClick={() => setLocationOpen(true)} className="hidden items-center gap-2 rounded-full bg-slate-100 px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700 md:flex" data-testid="location-change-button"><MapPin className="h-3.5 w-3.5 text-emerald-600" /> {location ? `${location.city.name}, ${location.country.code}` : "Region wählen"} <span className="ml-1 text-slate-400">⌄</span></button>
           <button type="button" onClick={() => setWatchlistOpen(true)} className="relative flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold text-slate-600 transition hover:bg-emerald-50 hover:text-emerald-700" data-testid="watchlist-nav-button"><Heart className="h-[18px] w-[18px]" /> <span className="hidden sm:inline">Merkliste</span>{favoriteIds.size > 0 ? <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-black text-white">{favoriteIds.size}</span> : null}</button>
         </div>
       </header>
@@ -250,12 +341,13 @@ export default function Home() {
         <section aria-label="Suchergebnisse" data-testid="search-results-section">
           <div className="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 xl:flex-row xl:items-end xl:justify-between"><div><div className="flex items-center gap-2"><h2 className="text-2xl font-black tracking-tight text-slate-900 sm:text-3xl">{submittedQuery ? `Ergebnisse für „${submittedQuery}“` : "Alle Angebote"}</h2>{data?.total ? <Badge variant="secondary" className="rounded-full bg-emerald-100 text-emerald-700">{data.total} Treffer</Badge> : null}</div>{data?.corrected_query ? <button type="button" onClick={() => { setQuery(data.corrected_query ?? ""); setSubmittedQuery(data.corrected_query ?? ""); }} className="mt-2 flex items-center gap-1 text-sm font-semibold text-emerald-700 hover:underline" data-testid="fuzzy-suggestion-chip"><Sparkles className="h-3.5 w-3.5" /> Meintest du „{data.corrected_query}“?</button> : <p className="mt-2 text-sm text-slate-500">Preise und Entfernungen von Märkten in deiner Nähe im Vergleich</p>}</div><div className="flex flex-wrap items-center gap-2"><div className="flex rounded-xl border border-slate-200 bg-white p-1"><button type="button" onClick={() => setViewMode("cards")} className={`rounded-lg p-2 transition ${viewMode === "cards" ? "bg-emerald-100 text-emerald-700" : "text-slate-400 hover:text-slate-700"}`} aria-label="Große Kartenansicht" data-testid="view-toggle-cards"><LayoutGrid className="h-4 w-4" /></button><button type="button" onClick={() => setViewMode("table")} className={`rounded-lg p-2 transition ${viewMode === "table" ? "bg-emerald-100 text-emerald-700" : "text-slate-400 hover:text-slate-700"}`} aria-label="Kompakte Tabellenansicht" data-testid="view-toggle-table"><List className="h-4 w-4" /></button></div><div className="relative flex items-center rounded-xl border border-slate-200 bg-white px-3"><ArrowDownUp className="mr-2 h-3.5 w-3.5 text-emerald-600" /><select value={sortBy} onChange={(event) => setSortBy(event.target.value as SortOption)} className="h-10 bg-transparent pr-1 text-sm font-semibold text-slate-600 outline-none" aria-label="Sortierung" data-testid="sort-by-select"><option value="price">Günstigster Gesamtpreis</option><option value="unit">Bester Stückpreis</option><option value="distance">Nächste Filiale</option><option value="discount">Höchster Rabatt</option></select></div></div></div>
 
-          {isLoading ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3"><div className="h-[520px] animate-pulse rounded-[1.35rem] bg-slate-200/70" /><div className="hidden h-[520px] animate-pulse rounded-[1.35rem] bg-slate-200/70 md:block" /><div className="hidden h-[520px] animate-pulse rounded-[1.35rem] bg-slate-200/70 xl:block" /></div> : isError ? <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-center"><Tag className="mx-auto h-8 w-8 text-amber-600" /><h3 className="mt-3 text-lg font-bold text-amber-900">Angebote gerade nicht erreichbar</h3><p className="mt-1 text-sm text-amber-800">Die Oberfläche bleibt verfügbar. Bitte versuche die Suche gleich noch einmal.</p></div> : products.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center"><Search className="mx-auto h-8 w-8 text-slate-400" /><h3 className="mt-3 text-lg font-bold text-slate-800">Keine passenden Produkte gefunden</h3><p className="mt-1 text-sm text-slate-500">Probiere zum Beispiel „Pizza“, „Milch“ oder „Red Bull“.</p></div> : viewMode === "cards" ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{products.map((product) => <ProductCard key={product.id} product={product} isFavorite={favoriteIds.has(product.id)} onToggleFavorite={() => toggleFavorite(product.id)} />)}</div> : <ComparisonTable products={products} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} />}
+          {isLoading ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3"><div className="h-[520px] animate-pulse rounded-[1.35rem] bg-slate-200/70" /><div className="hidden h-[520px] animate-pulse rounded-[1.35rem] bg-slate-200/70 md:block" /><div className="hidden h-[520px] animate-pulse rounded-[1.35rem] bg-slate-200/70 xl:block" /></div> : isError ? <div className="rounded-3xl border border-amber-200 bg-amber-50 p-8 text-center"><Tag className="mx-auto h-8 w-8 text-amber-600" /><h3 className="mt-3 text-lg font-bold text-amber-900">Angebote gerade nicht erreichbar</h3><p className="mt-1 text-sm text-amber-800">Die Oberfläche bleibt verfügbar. Bitte versuche die Suche gleich noch einmal.</p></div> : data && data.available_stores.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center" data-testid="region-no-markets"><Globe2 className="mx-auto h-8 w-8 text-slate-400" /><h3 className="mt-3 text-lg font-bold text-slate-800">Noch keine Märkte für diese Region</h3><p className="mt-1 text-sm text-slate-500">Für {location?.city.name} sind aktuell keine regionalen Demo-Märkte hinterlegt. Wähle oben eine andere Region.</p></div> : products.length === 0 ? <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-12 text-center"><Search className="mx-auto h-8 w-8 text-slate-400" /><h3 className="mt-3 text-lg font-bold text-slate-800">Keine passenden Produkte gefunden</h3><p className="mt-1 text-sm text-slate-500">Probiere zum Beispiel „Pizza“, „Milch“ oder „Red Bull“.</p></div> : viewMode === "cards" ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">{products.map((product) => <ProductCard key={product.id} product={product} isFavorite={favoriteIds.has(product.id)} onToggleFavorite={() => toggleFavorite(product.id)} />)}</div> : <ComparisonTable products={products} favoriteIds={favoriteIds} onToggleFavorite={toggleFavorite} />}
         </section>
 
-        <div className="mt-10 flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-5 py-4 text-sm text-emerald-800 sm:flex-row sm:items-center" data-testid="demo-data-notice"><div className="flex items-center gap-2 font-bold"><Sparkles className="h-4 w-4" /> MarktFuchs Demo-Angebote</div><p className="text-emerald-800/80">Beispieldaten für deine Region · Preise können je nach Markt und Tag abweichen</p></div>
+        <div className="mt-10 flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 px-5 py-4 text-sm text-emerald-800 sm:flex-row sm:items-center" data-testid="demo-data-notice"><div className="flex items-center gap-2 font-bold"><Sparkles className="h-4 w-4" /> MarktFuchs Demo-Angebote</div><p className="text-emerald-800/80">{location ? `${location.city.name}, ${location.country.local_name}` : "Region auswählen"} · {data?.available_stores.length ? `${data.available_stores.join(", ")} verfügbar` : "regionale Märkte werden nach der Auswahl geladen"}</p></div>
       </main>
       {watchlistOpen ? <Watchlist products={data?.results ?? []} favoriteIds={favoriteIds} onClose={() => setWatchlistOpen(false)} onToggleFavorite={toggleFavorite} /> : null}
+      {locationOpen ? <LocationGate onComplete={(nextLocation) => { setLocation(nextLocation); setLocationOpen(false); setFavoriteIds(new Set()); }} /> : null}
     </div>
   );
 }

@@ -1,0 +1,84 @@
+{
+  "iteration": 1,
+  "summary": "6/6 UI-facing criteria covered with 6 browser checks (all passed) and 6 backend tests across 4 pytest files (all passed). No bugs found.",
+  "passed": 12,
+  "failed": 0,
+  "retest_needed": false,
+  "bugs": [],
+  "action_items": [
+    "spec_deviation noted: offers/regional store approvals are explicitly DEMO data (no live retailer integration) - by design per briefing, not a bug.",
+    "spec_deviation noted: worldwide countries list comes from countries.dev; a smaller local fallback list is used if that source is unreachable - not exercised in this pass since the primary source was healthy (250 countries returned)."
+  ],
+  "checks": [
+    {
+      "criterion": "Beim ersten Öffnen erscheint vor der Produktsuche zuerst die Länderauswahl.",
+      "name": "location-gate-blocks-search-first",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "location-gate visible with country-selection-title 'In welchem Land lebst du?'; search-input-main present in DOM but click() times out (obscured by full-screen gate) confirming search is not usable until location is chosen."
+    },
+    {
+      "criterion": "Länder können über eine kleine Suchlupe nach lokalem oder englischem Namen gefunden werden und zeigen Flagge plus lokalen Namen mit englischem Namen in Klammern.",
+      "name": "country-search-finds-germany-local-and-english",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "Typing 'Deutschland' and separately 'Germany' into country-search-input both surface country-option-de with text 'Deutschland (Germany)' and a visible flag image."
+    },
+    {
+      "criterion": "Länder können über eine kleine Suchlupe nach lokalem oder englischem Namen gefunden werden und zeigen Flagge plus lokalen Namen mit englischem Namen in Klammern.",
+      "name": "test_countries_list_contains_germany / test_countries_search_by_local_or_english_name",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "GET /api/locations/countries -> 200, 250 countries; DE entry {local_name: Deutschland, english_name: Germany, flag_url set}; local/english name filters both surface DE."
+    },
+    {
+      "criterion": "Nach der Länderwahl werden nur Städte dieses Landes angeboten.",
+      "name": "city-selection-scoped-to-country-and-closes-gate",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "After selecting Deutschland, city-selection-title 'Wähle deine Stadt' appears; searching 'Berlin' shows Berlin in city-list; clicking it closes location-gate (count 0) and location-change-button shows 'Berlin, DE'."
+    },
+    {
+      "criterion": "Nach der Länderwahl werden nur Städte dieses Landes angeboten.",
+      "name": "test_cities_for_germany_include_berlin / test_cities_for_germany_do_not_include_foreign_city",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "GET /api/locations/cities?country=DE -> 200, includes Berlin, Hamburg, Munich...; 'Chicago' absent from the DE city list."
+    },
+    {
+      "criterion": "Die Produktsuche berücksichtigt Land und Stadt und zeigt nur Märkte, die für diese Region freigegeben sind.",
+      "name": "product-search-scoped-to-berlin-stores",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "After choosing Deutschland/Berlin and searching 'piza', demo-data-notice header shows 'Berlin' plus REWE, EDEKA, LIDL among the region's available stores; product cards render (Wagner, Dr. Oetker)."
+    },
+    {
+      "criterion": "Die Produktsuche berücksichtigt Land und Stadt und zeigt nur Märkte, die für diese Region freigegeben sind.",
+      "name": "test_pizza_search_berlin_only_approved_stores",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "GET /api/products/search?q=piza&country=DE&city=Berlin -> 200; corrected_query='pizza'; all offer stores subset of {REWE, EDEKA, LIDL, ALDI Süd, Penny, Kaufland}; available_stores exactly equals that allowlist."
+    },
+    {
+      "criterion": "Eine Region ohne hinterlegte Märkte zeigt keine fremden Angebote.",
+      "name": "region-without-markets-shows-explanation",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "After choosing United States/Chicago and searching 'piza', region-no-markets block is shown with text 'Noch keine Märkte für diese Region'; no product offers rendered."
+    },
+    {
+      "criterion": "Eine Region ohne hinterlegte Märkte zeigt keine fremden Angebote.",
+      "name": "test_pizza_search_chicago_us_has_no_demo_markets",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "GET /api/products/search?q=piza&country=US&city=Chicago -> 200; results=[] and available_stores=[]."
+    },
+    {
+      "criterion": "Bestehende Vergleichs- und Merklistenfunktionen bleiben nutzbar.",
+      "name": "watchlist-and-view-controls-work-berlin-pizza",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "In Berlin/DE 'piza' search: favoriting Wagner pizza card shows it in the watchlist sheet; table/card view toggle renders the same product in both modes; sort-by-select 'distance' keeps results rendering correctly."
+    }
+  ]
+}

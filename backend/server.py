@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime
 
 from routers.products import router as products_router
+from routers.locations import router as locations_router
 
 
 ROOT_DIR = Path(__file__).parent
@@ -47,6 +48,7 @@ class StatusCheckCreate(BaseModel):
 
 # Add your routes to the router instead of directly to app
 api_router.include_router(products_router)
+api_router.include_router(locations_router)
 
 @api_router.get("/")
 async def root():
