@@ -169,12 +169,12 @@ async def search_open_food_products(
     page: int,
     page_size: int,
 ) -> tuple[list[Product], int, str]:
-    if country_code not in {"DE", "AT"} or len(query.strip()) < 2 or not stores:
+    if len(query.strip()) < 2:
         return [], 0, "MarktFuchs Demo-Katalog"
 
     normalized_query = query.casefold().strip()
-    beauty_terms = {"drogerie", "shampoo", "duschgel", "seife", "zahnpasta", "kosmetik", "deo", "creme"}
-    household_terms = {"haushalt", "waschmittel", "reiniger", "spülmittel", "toilettenpapier", "küchenrolle"}
+    beauty_terms = {"drogerie", "shampoo", "duschgel", "seife", "zahnpasta", "kosmetik", "deo", "creme", "personal care", "shower gel", "toothpaste", "deodorant", "skin care", "hygiene"}
+    household_terms = {"haushalt", "waschmittel", "reiniger", "spülmittel", "toilettenpapier", "küchenrolle", "household", "laundry detergent", "cleaning product", "dishwashing", "paper product", "garbage bag"}
     if any(term in normalized_query for term in beauty_terms):
         catalog_names = ["Open Beauty Facts", "Open Products Facts", "Open Food Facts"]
     elif any(term in normalized_query for term in household_terms):
@@ -186,7 +186,8 @@ async def search_open_food_products(
     now = datetime.now(timezone.utc)
     cached = await db.catalog_cache.find_one({"key": key, "expires_at": {"$gt": now}})
     payload: dict[str, Any] | None = cached.get("payload") if cached else None
-    source = "Open Food Facts · Cache" if payload else "Open Food Facts"
+    cached_catalogs = (payload or {}).get("catalogs") or ["Open Food Facts"]
+    source = f"{' + '.join(cached_catalogs)} · Cache" if payload else "Open Food Facts"
 
     if payload is None:
         combined_products: list[dict[str, Any]] = []

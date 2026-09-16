@@ -1,15 +1,33 @@
-"""Backend coverage: region with market chains but no configured demo product prices
-returns empty product results (never foreign offers), even though the market register
-now lists local chains for that region (per the international market expansion)."""
+"""Backend coverage: region with market chains (US/Chicago) now surfaces the worldwide Open
+Facts catalog for any query, with regional demo offers attached where available - this is
+the documented spec_deviation from this iteration (catalog products stay visible even when
+a region previously had no configured demo product prices), not a regression of the older
+"no foreign offers" guarantee."""
+
+import time
 
 
-def test_pizza_search_chicago_us_has_no_demo_prices_yet(client):
-    resp = client.get("/products/search", params={"q": "piza", "country": "US", "city": "Chicago"})
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["results"] == [], "No demo product prices are configured for US yet"
-    assert data["country_code"] == "US"
-    assert data["city"] == "Chicago"
-    # Market register now covers the US, so available_stores is non-empty (chains exist,
-    # just no product prices yet) - this is the documented spec_deviation, not a bug.
-    assert len(data["available_stores"]) > 0
+def test_pizza_search_chicago_us_returns_worldwide_catalog_with_us_offers(client):
+    payload = None
+    for _ in range(5):
+        resp = client.get(
+            "/products/search",
+            params={"q": "piza", "country": "US", "city": "Chicago", "page_size": 12},
+        )
+        assert resp.status_code == 200
+        candidate = resp.json()
+        if candidate["results"]:
+            payload = candidate
+            break
+        time.sleep(2)
+    assert payload is not None, "Open Food Facts did not return pizza results after retries"
+
+    assert payload["country_code"] == "US"
+    assert payload["city"] == "Chicago"
+    # Market register now covers the US, so available_stores is non-empty.
+    assert len(payload["available_stores"]) > 0
+    # Every offer attached to a result must belong to the US region - never foreign stores.
+    for product in payload["results"]:
+        for offer in product["offers"]:
+            assert offer["country_code"] == "US"
+            assert offer["store"] in payload["available_stores"]

@@ -43,7 +43,7 @@ export interface ProductSearchResponse {
   catalog_source: string;
 }
 
-export const fetchProducts = (query: string, countryCode: string, city: string, page: number, pageSize = 24) =>
+export const fetchProducts = (query: string, countryCode: string, city: string, page: number, pageSize = 24, category?: string) =>
   apiGet<ProductSearchResponse>(
-    `/products/search?q=${encodeURIComponent(query)}&country=${encodeURIComponent(countryCode)}&city=${encodeURIComponent(city)}&page=${page}&page_size=${pageSize}`,
+    `/products/search?q=${encodeURIComponent(query)}&country=${encodeURIComponent(countryCode)}&city=${encodeURIComponent(city)}&page=${page}&page_size=${pageSize}${category ? `&category=${encodeURIComponent(category)}` : ""}`,
   );

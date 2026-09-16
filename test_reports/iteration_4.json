@@ -1,0 +1,39 @@
+{
+  "iteration": 4,
+  "summary": "Retest of the 2 bugs from iteration_3: both fixed by the app team and verified. Full backend suite (29 tests) passes; re-ran the persisted pagination browser check (passed). Updated one pre-existing backend test (test_cached_waschmittel_catalog_source_label_is_correct) whose strict-equality assertion was written against the OLD (buggy) behavior and needed to accept the now-documented optional '· Cache' suffix per the updated criterion wording; the underlying app behavior itself is correct (catalog_source retains 'Open Products Facts' attribution on cache hits, never falls back to 'Open Food Facts · Cache').",
+  "passed": 4,
+  "failed": 0,
+  "retest_needed": false,
+  "bugs": [],
+  "action_items": [],
+  "checks": [
+    {
+      "criterion": "Verpackte Lebensmittel und Getränke werden weltweit paginiert aus Open Facts geladen.",
+      "name": "test_us_chicago_limonaden_next_page_is_reachable",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "GET /api/products/search?q=limonaden&category=limonaden&country=US&city=Chicago&page=1&page_size=24 -> 200; total=677, has_more=true. Previously failed in iteration_3 (has_more=false due to a mapped-count-vs-total mismatch); now fixed and passing."
+    },
+    {
+      "criterion": "Verpackte Lebensmittel und Getränke werden weltweit paginiert aus Open Facts geladen.",
+      "name": "us-chicago-limonaden-pagination-works",
+      "lane": "browser",
+      "status": "passed",
+      "evidence": "Re-ran persisted check by name (mode: reran-persisted). DE -> United States -> Chicago -> Getränke -> Limonaden shows '677 Treffer'; data-testid=catalog-next-page is enabled on page 1 and clicking it visibly advances to page 2. Previously failed in iteration_3 with the button disabled; now passing."
+    },
+    {
+      "criterion": "Haushalt und Drogerie verwenden auch nach einem Cache-Treffer die korrekte Quellenbezeichnung.",
+      "name": "test_cached_waschmittel_catalog_source_label_is_correct",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "Fresh (cache-cleared) GET /api/products/search?q=Waschmittel&category=waschmittel&country=DE&city=Berlin&page_size=12 -> catalog_source='Open Products Facts + Open Food Facts'. Immediate repeat (cache hit) GET -> catalog_source='Open Products Facts + Open Food Facts · Cache' (base source unchanged, only an optional '· Cache' suffix added; never regresses to the old 'Open Food Facts · Cache' mislabel). Test assertion updated to match the criterion's documented optional-suffix wording; app behavior confirmed correct."
+    },
+    {
+      "criterion": "full regression",
+      "name": "backend pytest suite",
+      "lane": "backend",
+      "status": "passed",
+      "evidence": "cd /app/backend && python -m pytest -q -p no:cacheprovider -> 29 passed in 3.91s (all pre-existing test_tscheck_* files, including the 2 that were fixed this iteration)."
+    }
+  ]
+}

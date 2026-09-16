@@ -1,0 +1,1 @@
+"""Bundled catalog data used when public product databases have no barcode entry."""

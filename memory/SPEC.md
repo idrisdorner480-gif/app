@@ -10,6 +10,7 @@ MarktFuchs startet mit einer Sprachwahl in derselben durchsuchbaren Listenstrukt
 - `Country`: code, local_name, english_name, flag_url
 - `City`: id, name, population
 - `RegionMarkets`: country_code, city, stores, data_source
+- `CatalogCategory`: slug, name, description, icon, subcategories
 
 ## Kernflüsse
 1. Länder über `GET /api/locations/countries`, danach Städte über `GET /api/locations/cities?country=DE` auswählen.
@@ -21,6 +22,8 @@ MarktFuchs startet mit einer Sprachwahl in derselben durchsuchbaren Listenstrukt
 6. Produkte werden lokal in einer Merkliste gespeichert; Sonner bestätigt das Hinzufügen/Entfernen.
 7. Österreichische Regionen zeigen eigene Demo-Angebote von SPAR, BILLA, MPREIS, BILLA PLUS, HOFER, INTERSPAR, EUROSPAR, LIDL und Penny; Stadt-Overrides berücksichtigen die tatsächliche regionale Verfügbarkeit (z. B. MPREIS in Innsbruck).
 8. Produktstammdaten werden bei der Suche paginiert aus Open Food Facts ergänzt; Haushaltsbegriffe werden zusätzlich in Open Products Facts und Drogeriebegriffe in Open Beauty Facts gesucht. Jeder externe Datensatz erhält deterministisch erzeugte, klar als Demo markierte Filialpreise, Adressen und die Statuswerte `verfügbar`, `knapp` oder `nicht verfügbar` für die ausgewählte Stadt.
+9. `GET /api/catalog/categories` liefert einen Kategorienbaum mit Obst, Gemüse, Getränken, Milchprodukten, Tiefkühl, Backwaren, Fleisch, Fisch, veganen Produkten, Vorrat, Haushalt und Drogerie sowie detaillierten Unterkategorien.
+10. Lose Ware ohne Barcode wird durch ein gepflegtes Grundsortiment mit über 130 gängigen Obst-, Gemüse-, Backwaren-, Fleisch- und Fischartikeln ergänzt. Kategorien und Open-Facts-Kataloge sind weltweit durchsuchbar; regionale Filialangebote erscheinen dort, wo Märkte im Regionsregister gepflegt sind.
 
 ## Auth / Rollen
 Keine Authentifizierung im MVP.
