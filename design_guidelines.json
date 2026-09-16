@@ -1,0 +1,181 @@
+{
+  "project_title": "Supermarkt-Preisvergleich - MarktFuchs / PreisScout",
+  "app_type": "hybrid_fullstack",
+  "language_context": "German (de-DE) with local German supermarket chains: REWE, Edeka, Lidl, ALDI Süd, Penny, Kaufland",
+  "archetype": "ORGANIC_FRESH_HIGH_CONTRAST",
+  "theme_system": {
+    "default_mode": "light",
+    "background": "bg-[#F8F9FA]",
+    "foreground": "text-[#121826]",
+    "primary": "#16A34A",
+    "primary_hover": "#15803D",
+    "primary_foreground": "#FFFFFF",
+    "card_bg": "#FFFFFF",
+    "card_border": "border-[#E5E7EB]",
+    "accent_mint": "#DCFCE7",
+    "accent_mint_text": "#15803D",
+    "badge_discount": "bg-[#EF4444] text-white",
+    "badge_best_price": "bg-[#16A34A] text-white font-bold",
+    "surface_glass": "backdrop-blur-md bg-white/80 border border-slate-200/60 shadow-sm"
+  },
+  "typography": {
+    "font_family_heading": "'Geist Variable', -apple-system, BlinkMacSystemFont, sans-serif",
+    "font_family_body": "'Geist Variable', -apple-system, BlinkMacSystemFont, sans-serif",
+    "font_family_mono": "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+    "scale": {
+      "hero_title": "text-3xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight",
+      "section_heading": "text-2xl sm:text-3xl font-bold tracking-tight",
+      "card_heading": "text-lg sm:text-xl font-bold tracking-tight text-slate-900",
+      "subtext": "text-sm text-slate-500 font-normal",
+      "price_highlight": "text-2xl sm:text-3xl font-black text-emerald-600 tracking-tight",
+      "unit_price": "text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full"
+    }
+  },
+  "supermarket_brand_badges": {
+    "REWE": {
+      "bg": "bg-[#E2001A]",
+      "text": "text-white",
+      "border": "border-[#C10016]",
+      "label": "REWE",
+      "logo_accent": "#E2001A"
+    },
+    "Edeka": {
+      "bg": "bg-[#005CA9]",
+      "text": "text-[#FFED00]",
+      "border": "border-[#004884]",
+      "label": "EDEKA",
+      "logo_accent": "#005CA9"
+    },
+    "Lidl": {
+      "bg": "bg-[#0050AA]",
+      "text": "text-[#FFF000]",
+      "border": "border-[#E30613]",
+      "label": "LIDL",
+      "logo_accent": "#0050AA"
+    },
+    "ALDI Süd": {
+      "bg": "bg-[#00205B]",
+      "text": "text-[#00A3E0]",
+      "border": "border-[#001845]",
+      "label": "ALDI",
+      "logo_accent": "#00205B"
+    },
+    "Penny": {
+      "bg": "bg-[#CD1318]",
+      "text": "text-white",
+      "border": "border-[#A00F13]",
+      "label": "PENNY",
+      "logo_accent": "#CD1318"
+    },
+    "Kaufland": {
+      "bg": "bg-[#E2001A]",
+      "text": "text-white",
+      "border": "border-[#111111]",
+      "label": "Kaufland",
+      "logo_accent": "#E2001A"
+    }
+  },
+  "key_features_layout": {
+    "header_nav": {
+      "description": "Sticky top bar with blurred glass background, brand logo with leafy icon, active watchlist indicator counter, store distance radius toggle (e.g., 'Im Umkreis von 5 km'), and quick link to Merkliste sheet.",
+      "data_testids": {
+        "header": "header-nav",
+        "search_input": "search-input-main",
+        "watchlist_button": "watchlist-nav-button",
+        "distance_selector": "distance-radius-select"
+      }
+    },
+    "search_hero_section": {
+      "description": "Prominent fuzzy-search bar with instant auto-suggestions, typo auto-correction notice (e.g., 'Meinten Sie Red Bull?'), popular search tags ('Pizza', 'Red Bull 24er', 'Kaffee', 'Milch 1L', 'Bier Kraten', 'Nutella'), and active store filter pills.",
+      "fuzzy_search_rules": "App must handle typos like 'piza' -> 'Pizza', 'red bul' -> 'Red Bull', 'nutela' -> 'Nutella', 'milx' -> 'Milch', 'apfel' -> 'Äpfel', displaying matched product synonyms with high accuracy.",
+      "data_testids": {
+        "search_hero": "search-hero-section",
+        "fuzzy_suggestion_chip": "fuzzy-suggestion-chip",
+        "popular_tag": "popular-search-tag"
+      }
+    },
+    "view_toggle_and_sorting": {
+      "description": "Control toolbar allowing users to switch between 'Große Kartenansicht' (Grid with product pictures & side-by-side store offers) and 'Kompakte Tabellenansicht' (dense table matrix), plus sort dropdown (Günstigster Gesamtpreis, Bester Stückpreis, Nächste Filiale, Höchster Rabatt).",
+      "data_testids": {
+        "card_view_btn": "view-toggle-cards",
+        "table_view_btn": "view-toggle-table",
+        "sort_dropdown": "sort-by-select",
+        "filter_discount_only": "filter-discount-toggle"
+      }
+    },
+    "product_cards_view": {
+      "description": "Bento-style visual cards featuring HQ food product photo, title, package size (e.g. '24 x 0.25l Dosen' or '350g'), lowest price highlight badge, store distance, best unit price calculation, expandable list of all store prices side-by-side, and favorite bookmark heart icon.",
+      "data_testids": {
+        "product_card": "product-card-item",
+        "product_title": "product-title",
+        "best_price_badge": "best-price-badge",
+        "store_offer_row": "store-offer-item",
+        "favorite_toggle": "favorite-toggle-btn"
+      }
+    },
+    "compact_table_view": {
+      "description": "High density data matrix table comparing products row by row against each supermarket column (REWE, Edeka, Lidl, Aldi, Penny, Kaufland) with best price cells highlighted in vibrant emerald soft badge, unit price subtext, and store distance header.",
+      "data_testids": {
+        "comparison_table": "price-comparison-table",
+        "table_row_product": "table-row-product",
+        "table_cell_price": "table-cell-price",
+        "table_cell_cheapest": "table-cell-cheapest-highlight"
+      }
+    },
+    "watchlist_sidebar_sheet": {
+      "description": "Slide-over sheet showing saved items ('Merkliste'), total potential savings calculation ('Du sparst bis zu 8,40 € bei REWE/Lidl'), store-wise cart total breakdown, and printable/shareable list option.",
+      "data_testids": {
+        "watchlist_sheet": "watchlist-sheet-container",
+        "watchlist_item": "watchlist-item-row",
+        "watchlist_total_savings": "watchlist-total-savings",
+        "watchlist_store_summary": "watchlist-store-summary"
+      }
+    }
+  },
+  "image_urls": [
+    {
+      "category": "product_energy_drink",
+      "url": "https://images.unsplash.com/photo-1612635901022-20ae4c268753?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzh8MHwxfHNlYXJjaHszfHxncm9jZXJ5JTIwc3VwZXJtYXJrZXQlMjBwcm9kdWN0cyUyMHBpenphJTIwcmVkYnVsbCUyMGVuZXJneSUyMGRyaW5rJTIwZnJ1aXQlMjB2ZWdldGFibGVzfGVufDB8fHx8MTc4OTU4NzMwNnww&ixlib=rb-4.1.0&q=85",
+      "description": "Red Bull Energy Drink Can"
+    },
+    {
+      "category": "product_beverages_shelf",
+      "url": "https://images.pexels.com/photos/26969901/pexels-photo-26969901.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Assorted chilled beverages and canned drinks"
+    },
+    {
+      "category": "product_apples_fresh",
+      "url": "https://images.unsplash.com/photo-1683688684067-b87a189c7503?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHszfHxmcmVzaCUyMHBpenphJTIwZ3JvY2VyeSUyMHN1cGVybWFya2V0JTIwcHJvZHVjZSUyMG9yZ2FuaWMlMjBhcHBsZXMlMjBtaWxrfGVufDB8fHx8MTc4OTU4NzMxM3ww&ixlib=rb-4.1.0&q=85",
+      "description": "Fresh Bio Green Apples"
+    },
+    {
+      "category": "product_market_produce",
+      "url": "https://images.unsplash.com/photo-1569254631271-fb470f53fa85?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1ODF8MHwxfHNlYXJjaHwyfHxmcmVzaCUyMHBpenphJTIwZ3JvY2VyeSUyMHN1cGVybWFya2V0JTIwcHJvZHVjZSUyMG9yZ2FuaWMlMjBhcHBsZXMlMjBtaWxrfGVufDB8fHx8MTc4OTU4NzMxM3ww&ixlib=rb-4.1.0&q=85",
+      "description": "Fresh Fruit & Supermarket Produce display"
+    }
+  ],
+  "instructions_to_main_agent": [
+    "Use standard .js / .jsx file structure for components and pages.",
+    "Import Lucide icons (lucide-react) for UI actions (Search, Heart, MapPin, Tag, ArrowUpDown, LayoutGrid, Table, ShoppingBag, Check, Sparkles, AlertCircle).",
+    "All interactive elements (buttons, inputs, select triggers, cards, table rows, favorite toggles, tabs) MUST have data-testid attributes formatted in kebab-case.",
+    "Implement realistic local mock dataset in a dedicated mock data file (/src/data/supermarketData.js) featuring realistic German grocery prices for Red Bull 24er, Wagner Pizza, Dr. Oetker Ristorante, Ja! Vollmilch, Barilla Spaghetti, Coca-Cola 1.5L, Nutella 450g, Bio Äpfel 1kg, etc., with store distance variations (e.g. 0.4 km - 3.2 km).",
+    "Build a smart client-side search function with fuzzy matching (Levenshtein distance or flex partial matching) to support typos like 'red bul', 'piza', 'nutela', 'edeka', 'milch' seamlessly.",
+    "Highlight unit prices clearly (e.g., '0.99 € / Liter' or '1.12 € / Stück') alongside total price.",
+    "Provide toast notifications using Sonner when adding or removing items from the Merkliste (Watchlist).",
+    "Ensure total color contrast compliance with WCAG standards and avoid generic AI templates."
+  ],
+  "UNIVERSAL GUIDELINES FOR MAIN AGENT": {
+    "anti_patterns": [
+      "No generic unstyled tables without store badge colors",
+      "No missing unit price or distance labels",
+      "No plain white background without structural hierarchy and rounded card containers",
+      "No missing data-testid attributes on key interactive components"
+    ],
+    "micro_interactions": [
+      "Hover scaling on product cards (hover:-translate-y-1 transition-all duration-200 ease-out)",
+      "Heart animation pop on favorite button click",
+      "Active view toggle pill tab transition",
+      "Subtle glowing border pulse on the lowest price deal chip"
+    ]
+  }
+}
