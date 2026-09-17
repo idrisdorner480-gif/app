@@ -21,11 +21,6 @@ workflows:
           cd frontend
           npm install @capacitor/core@8.5.2 @capacitor/cli@8.5.2 @capacitor/ios@8.5.2 --save --legacy-peer-deps
 
-      - name: Build web app
-        script: |
-          cd frontend
-          npm run build
-
       - name: Create Capacitor config
         script: |
           cd frontend
@@ -42,9 +37,15 @@ workflows:
           export default config;
           EOF
 
+      - name: Build web app
+        script: |
+          cd frontend
+          npm run build
+
       - name: Add iOS platform
         script: |
           cd frontend
+          rm -rf ios
           npx cap add ios
 
       - name: Sync Capacitor
@@ -52,46 +53,28 @@ workflows:
           cd frontend
           npx cap sync ios
 
-      - name: Find iOS project
+      - name: Check iOS project
         script: |
           cd frontend
-          echo "=== iOS files ==="
-          find ios -maxdepth 4 -type f | sort
+          echo "=== Generated iOS project ==="
+          find ios -maxdepth 5 -type f | sort
+          echo "=== Podfiles ==="
+          find ios -name "Podfile" -print
+          echo "=== Workspaces ==="
+          find ios -name "*.xcworkspace" -print
 
-      - name: Install CocoaPods
-        script: |
-          cd frontend
-
-          if [ -f "ios/App/Podfile" ]; then
-            cd ios/App
-            pod install
-          elif [ -f "ios/Podfile" ]; then
-            cd ios
-            pod install
-          else
-            echo "ERROR: Kein Podfile gefunden."
-            find ios -name Podfile -print
-            exit 1
-          fi
-
-      - name: Build iOS app
+      - name: Build iOS
         script: |
           cd frontend
 
-          if [ -f "ios/App/App.xcworkspace" ]; then
-            xcodebuild \
-              -workspace ios/App/App.xcworkspace \
-              -scheme App \
-              -configuration Release \
-              -sdk iphoneos \
-              -destination 'generic/platform=iOS' \
-              CODE_SIGNING_ALLOWED=NO \
-              build
-          else
-            echo "ERROR: App.xcworkspace nicht gefunden."
-            find ios -name "*.xcworkspace" -print
-            exit 1
-          fi
+          xcodebuild \
+            -workspace ios/App/App.xcworkspace \
+            -scheme App \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO \
+            build
 
     artifacts:
       - frontend/ios/**/*.app
