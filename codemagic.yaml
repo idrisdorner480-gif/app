@@ -10,6 +10,7 @@ workflows:
       cocoapods: default
 
     scripts:
+
       - name: Install dependencies
         script: |
           cd frontend
@@ -28,6 +29,7 @@ workflows:
       - name: Create Capacitor config
         script: |
           cd frontend
+
           cat > capacitor.config.ts <<'EOF'
           import type { CapacitorConfig } from '@capacitor/cli';
 
@@ -50,24 +52,47 @@ workflows:
           cd frontend
           npx cap sync ios
 
+      - name: Find iOS project
+        script: |
+          cd frontend
+          echo "=== iOS files ==="
+          find ios -maxdepth 4 -type f | sort
+
       - name: Install CocoaPods
         script: |
-          cd frontend/ios/App
-          pod install
+          cd frontend
+
+          if [ -f "ios/App/Podfile" ]; then
+            cd ios/App
+            pod install
+          elif [ -f "ios/Podfile" ]; then
+            cd ios
+            pod install
+          else
+            echo "ERROR: Kein Podfile gefunden."
+            find ios -name Podfile -print
+            exit 1
+          fi
 
       - name: Build iOS app
         script: |
           cd frontend
-          xcodebuild \
-            -workspace ios/App/App.xcworkspace \
-            -scheme App \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            CODE_SIGNING_ALLOWED=NO \
-            build
+
+          if [ -f "ios/App/App.xcworkspace" ]; then
+            xcodebuild \
+              -workspace ios/App/App.xcworkspace \
+              -scheme App \
+              -configuration Release \
+              -sdk iphoneos \
+              -destination 'generic/platform=iOS' \
+              CODE_SIGNING_ALLOWED=NO \
+              build
+          else
+            echo "ERROR: App.xcworkspace nicht gefunden."
+            find ios -name "*.xcworkspace" -print
+            exit 1
+          fi
 
     artifacts:
-      - frontend/ios/App/build/**/*.app
+      - frontend/ios/**/*.app
       - /tmp/xcodebuild_logs/*.log
-
