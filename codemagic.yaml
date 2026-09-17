@@ -7,7 +7,6 @@ workflows:
     environment:
       node: 22
       xcode: latest
-      cocoapods: default
 
     scripts:
 
@@ -21,10 +20,14 @@ workflows:
           cd frontend
           npm install @capacitor/core@8.5.2 @capacitor/cli@8.5.2 @capacitor/ios@8.5.2 --save --legacy-peer-deps
 
+      - name: Build web app
+        script: |
+          cd frontend
+          npm run build
+
       - name: Create Capacitor config
         script: |
           cd frontend
-
           cat > capacitor.config.ts <<'EOF'
           import type { CapacitorConfig } from '@capacitor/cli';
 
@@ -37,11 +40,6 @@ workflows:
           export default config;
           EOF
 
-      - name: Build web app
-        script: |
-          cd frontend
-          npm run build
-
       - name: Add iOS platform
         script: |
           cd frontend
@@ -53,26 +51,10 @@ workflows:
           cd frontend
           npx cap sync ios
 
-      - name: Check iOS project
-        script: |
-          cd frontend
-          echo "=== Generated iOS project ==="
-          find ios -maxdepth 5 -type f | sort
-          echo "=== Podfiles ==="
-          find ios -name "Podfile" -print
-          echo "=== Workspaces ==="
-          find ios -name "*.xcworkspace" -print
-
-           - name: Build iOS
+      - name: Build iOS
         script: |
           cd frontend
           xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" build
-            -scheme App \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            CODE_SIGNING_ALLOWED=NO \
-            build
 
     artifacts:
       - frontend/ios/**/*.app
