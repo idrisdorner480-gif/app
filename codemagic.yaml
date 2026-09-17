@@ -15,6 +15,11 @@ workflows:
           cd frontend
           npm install --legacy-peer-deps
 
+      - name: Install Capacitor
+        script: |
+          cd frontend
+          npm install @capacitor/core@8.5.2 @capacitor/cli@8.5.2 @capacitor/ios@8.5.2 --save --legacy-peer-deps
+
       - name: Build web app
         script: |
           cd frontend
@@ -50,3 +55,4 @@ workflows:
     artifacts:
       - frontend/ios/App/build/**/*.app
       - /tmp/xcodebuild_logs/*.log
+
