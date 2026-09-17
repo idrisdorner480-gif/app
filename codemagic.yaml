@@ -25,6 +25,21 @@ workflows:
           cd frontend
           npm run build
 
+      - name: Create Capacitor config
+        script: |
+          cd frontend
+          cat > capacitor.config.ts <<'EOF'
+          import type { CapacitorConfig } from '@capacitor/cli';
+
+          const config: CapacitorConfig = {
+            appId: 'com.marktfuchs.app',
+            appName: 'MarktFuchs',
+            webDir: 'dist'
+          };
+
+          export default config;
+          EOF
+
       - name: Add iOS platform
         script: |
           cd frontend
