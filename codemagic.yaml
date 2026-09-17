@@ -63,12 +63,10 @@ workflows:
           echo "=== Workspaces ==="
           find ios -name "*.xcworkspace" -print
 
-      - name: Build iOS
+           - name: Build iOS
         script: |
           cd frontend
-
-          xcodebuild \
-            -project ios/App/App.xcodeproj
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Release -sdk iphoneos -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" DEVELOPMENT_TEAM="" build
             -scheme App \
             -configuration Release \
             -sdk iphoneos \
